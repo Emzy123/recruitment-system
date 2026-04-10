@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f5f7fb;
+  --foreground: #111827;
+  --muted: #4b5563;
+  --border: #d6dde8;
+  --surface: #ffffff;
+  --surface-subtle: #eef2f7;
+  --surface-glass: rgb(255 255 255 / 0.85);
+  --border-strong: #c5cedb;
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --brand: #4f46e5; /* indigo-600 */
+  --brand-2: #0ea5e9; /* sky-500 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1220;
+    --foreground: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #2c3648;
+    --surface: #111a2b;
+    --surface-subtle: #172238;
+    --surface-glass: rgb(15 23 42 / 0.82);
+    --border-strong: #3d4a63;
+    --success-bg: #052e1a;
+    --success-text: #86efac;
+    --danger-bg: #450a0a;
+    --danger-text: #fecaca;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+@layer base {
+  html,
+  body {
+    @apply antialiased;
+  }
+
+  * {
+    @apply outline-none;
+  }
+
+  a {
+    @apply underline-offset-4;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 25%, transparent);
+  }
+}
+
+@layer components {
+  .app-container {
+    @apply max-w-6xl mx-auto px-4;
+  }
+
+  .card {
+    @apply rounded-2xl border shadow-sm;
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .input {
+    @apply w-full rounded-lg border px-3 py-2.5 text-[15px] focus:ring-4 disabled:cursor-not-allowed;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--foreground);
+    caret-color: var(--foreground);
+    --tw-placeholder-color: color-mix(in srgb, var(--muted) 80%, transparent);
+    --tw-ring-color: color-mix(in srgb, var(--brand) 20%, transparent);
+  }
+
+  .input:focus {
+    border-color: color-mix(in srgb, var(--brand) 65%, var(--border));
+  }
+
+  .input:disabled {
+    background: var(--surface-subtle);
+    color: var(--muted);
+    border-color: var(--border-strong);
+  }
+
+  .label {
+    @apply block text-sm font-medium;
+    color: var(--foreground);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:ring-4 focus-visible:ring-indigo-500/30 disabled:cursor-not-allowed;
+    background: var(--brand);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--brand) 88%, white);
+  }
+
+  .btn-primary:active {
+    background: color-mix(in srgb, var(--brand) 86%, black);
+  }
+
+  .btn-primary:disabled {
+    background: color-mix(in srgb, var(--surface-subtle) 88%, transparent);
+    color: var(--muted);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors border focus-visible:ring-4 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--foreground);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-subtle);
+  }
+
+  .btn-secondary:active {
+    border-color: var(--border-strong);
+  }
+
+  .btn-secondary:disabled {
+    background: var(--surface-subtle);
+    color: var(--muted);
+    border-color: var(--border-strong);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .surface-page {
+    background: var(--background);
+  }
+
+  .surface-card {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .surface-subtle {
+    background: var(--surface-subtle);
+    border-color: var(--border);
+  }
+
+  .surface-glass {
+    background: var(--surface-glass);
+    border-color: var(--border);
+  }
+
+  .text-strong {
+    color: var(--foreground);
+  }
+
+  .text-muted {
+    color: var(--muted);
+  }
+
+  .text-success {
+    color: var(--success-text);
+  }
+
+  .text-danger {
+    color: var(--danger-text);
+  }
+
+  .bg-success-subtle {
+    background: var(--success-bg);
+  }
+
+  .bg-danger-subtle {
+    background: var(--danger-bg);
+  }
+
+  .border-subtle {
+    border-color: var(--border);
+  }
+
+  .border-strong {
+    border-color: var(--border-strong);
+  }
+}
