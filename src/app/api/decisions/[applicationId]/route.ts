@@ -4,9 +4,12 @@ import { z } from "zod";
 import { connectToMongo } from "@/lib/mongodb";
 import { Application } from "@/lib/db/models/Application";
 import { HiringDecision } from "@/lib/db/models/HiringDecision";
+import { User } from "@/lib/db/models/User";
+import { Position } from "@/lib/db/models/Position";
 import { getAuthToken, deny } from "@/lib/utils/authz";
 import { logAudit } from "@/lib/utils/audit";
 import { createNotification } from "@/lib/utils/notifications";
+import { sendDecisionEmail } from "@/lib/utils/email";
 
 const DecisionSchema = z.object({
   decision: z.enum(["offer", "reject", "waitlist"]),
@@ -88,10 +91,23 @@ export async function POST(
   await createNotification({
     userId: candidateUserId,
     title: "Hiring decision updated",
-      message: `A final hiring decision has been made on your application (${parsed.data.decision}).`,
+    message: `A final hiring decision has been made on your application (${parsed.data.decision}).`,
     type: "decision",
     link: `/candidate/applications/${context.params.applicationId}`,
   });
+
+  // Email Notification
+  const candidate = await User.findById(application.candidateId);
+  const position = await Position.findById(application.positionId);
+  if (candidate && candidate.email && position) {
+    await sendDecisionEmail({
+      to: candidate.email,
+      candidateName: candidate.firstName,
+      positionTitle: position.title,
+      decision: parsed.data.decision,
+      offerDetails: parsed.data.offerDetails,
+    });
+  }
 
   await logAudit({
     req,

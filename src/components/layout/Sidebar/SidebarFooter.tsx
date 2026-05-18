@@ -1,6 +1,6 @@
 "use client";
-
 import { signOut } from "next-auth/react";
+import Image from "next/image";
 
 type Props = {
   displayName: string;
@@ -43,8 +43,7 @@ export function SidebarFooter({
           aria-hidden={profileImageUrl ? undefined : true}
         >
           {profileImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profileImageUrl} alt="" className="h-full w-full object-cover" />
+            <Image src={profileImageUrl} alt="" width={40} height={40} className="h-full w-full object-cover" />
           ) : (
             letter
           )}

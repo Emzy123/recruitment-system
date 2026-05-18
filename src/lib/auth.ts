@@ -3,12 +3,10 @@ import { User } from "@/lib/db/models/User";
 import { verifyPassword } from "@/lib/utils/bcrypt";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { encode } from "next-auth/jwt";
 
-// Very small in-memory rate limiter for login attempts.
-// Note: in production, replace with Redis or a proper rate-limit store.
-type Attempt = { count: number; resetAt: number };
-const attempts = new Map<string, Attempt>();
+import { authRateLimit } from "@/lib/rate-limit";
 
 function getIpFromReq(req: any) {
   return (
@@ -19,32 +17,10 @@ function getIpFromReq(req: any) {
   );
 }
 
-function assertRateLimit(params: { key: string; windowMs: number; max: number }) {
-  const { key, windowMs, max } = params;
-  const now = Date.now();
-  const current = attempts.get(key);
-
-  if (!current || current.resetAt <= now) {
-    attempts.set(key, { count: 1, resetAt: now + windowMs });
-    return;
-  }
-
-  if (current.count >= max) {
-    throw new Error("Too many login attempts. Please try again later.");
-  }
-
-  attempts.set(key, { ...current, count: current.count + 1 });
-}
-
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 if (!nextAuthSecret) {
   throw new Error("Missing environment variable NEXTAUTH_SECRET");
 }
-
-// Spec says 5 attempts per minute for login; we enforce a narrow limit even if
-// global rate limiting env vars are broader.
-const loginSpecWindowMs = 60_000;
-const loginSpecMax = 5;
 
 export const authOptions: NextAuthOptions = {
   secret: nextAuthSecret,
@@ -52,6 +28,19 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      profile(profile) {
+        return {
+          id: profile.sub,
+          email: profile.email,
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+          role: "candidate",
+        };
+      },
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -65,12 +54,11 @@ export const authOptions: NextAuthOptions = {
 
         if (!email || !password) return null;
 
-        // Apply spec rate limit (5/min).
-        assertRateLimit({
-          key: `${email}:${ip}`,
-          windowMs: loginSpecWindowMs,
-          max: loginSpecMax,
-        });
+        // Apply distributed rate limit
+        const { success } = await authRateLimit.limit(`login:${email}:${ip}`);
+        if (!success) {
+          throw new Error("Too many login attempts. Please try again later.");
+        }
 
         await connectToMongo();
 
@@ -92,6 +80,32 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        await connectToMongo();
+        const email = user.email?.toLowerCase().trim();
+        if (!email) return false;
+        
+        let dbUser = await User.findOne({ email });
+        if (!dbUser) {
+          dbUser = await User.create({
+            email,
+            firstName: (user as any).firstName || (profile as any)?.given_name || "Google",
+            lastName: (user as any).lastName || (profile as any)?.family_name || "User",
+            role: "candidate",
+            isActive: true,
+            emailVerified: true,
+          });
+        }
+        
+        // Map DB fields to the user object so jwt callback gets them
+        user.id = dbUser._id.toString();
+        (user as any).role = dbUser.role;
+        (user as any).firstName = dbUser.firstName;
+        (user as any).lastName = dbUser.lastName;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         const u = user as {

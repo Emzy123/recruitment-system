@@ -11,6 +11,7 @@ import { AssessmentInvitation } from "@/lib/db/models/AssessmentInvitation";
 import { logAudit } from "@/lib/utils/audit";
 import { createNotification, createNotificationsBulk } from "@/lib/utils/notifications";
 import { sendAssessmentInvitationEmail } from "@/lib/utils/email";
+import { withErrorHandler } from "@/lib/utils/api-handler";
 
 const CreateApplicationSchema = z.object({
   positionId: z.string().min(1),
@@ -21,11 +22,13 @@ const CreateApplicationSchema = z.object({
 
 function getPagination(searchParams: URLSearchParams) {
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const limit = Math.max(1, Math.min(50, Number(searchParams.get("limit") ?? "12")));
+  const limitStr = searchParams.get("limit");
+  // Allow fetching up to 1000 items for full pipeline views
+  const limit = Math.max(1, Math.min(1000, Number(limitStr ?? "12")));
   return { page, limit };
 }
 
-export async function POST(req: Request) {
+export const POST = withErrorHandler(async (req: Request) => {
   const token = await getToken({
     req: req as any,
     secret: process.env.NEXTAUTH_SECRET,
@@ -161,9 +164,9 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ ok: true, application: created }, { status: 201 });
-}
+});
 
-export async function GET(req: Request) {
+export const GET = withErrorHandler(async (req: Request) => {
   const token = await getToken({
     req: req as any,
     secret: process.env.NEXTAUTH_SECRET,
@@ -202,5 +205,5 @@ export async function GET(req: Request) {
     .populate("positionId", "title department location type experienceLevel");
 
   return NextResponse.json({ ok: true, page, limit, total, items });
-}
+});
 

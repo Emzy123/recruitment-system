@@ -42,6 +42,47 @@ export async function sendPasswordResetEmail(params: {
   });
 }
 
+export async function sendVerificationEmail(params: {
+  to: string;
+  verifyUrl: string;
+}) {
+  const { to, verifyUrl } = params;
+
+  const emailServer = process.env.EMAIL_SERVER;
+  const emailPort = Number(process.env.EMAIL_PORT ?? "587");
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
+  const emailFrom = process.env.EMAIL_FROM ?? "noreply@recruitment.com";
+
+  if (!emailServer || !emailUser || !emailPassword) {
+    // eslint-disable-next-line no-console
+    console.log(`[Verification email - local fallback]\nTo: ${to}\nVerify URL: ${verifyUrl}\n`);
+    return;
+  }
+
+  const transport = nodemailer.createTransport({
+    host: emailServer,
+    port: emailPort,
+    secure: emailPort === 465,
+    auth: {
+      user: emailUser,
+      pass: emailPassword,
+    },
+  });
+
+  const text = `Please verify your email address.\n\nVerify using this link:\n${verifyUrl}\n\nIf you didn't request this, you can ignore this email.`;
+
+  const html = `<p>Please verify your email address.</p><p>Verify using this link:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>If you didn't request this, you can ignore this email.</p>`;
+
+  await transport.sendMail({
+    from: emailFrom,
+    to,
+    subject: "Verify your email address",
+    text,
+    html,
+  });
+}
+
 export async function sendAssessmentInvitationEmail(params: {
   to: string;
   candidateName: string;
@@ -85,3 +126,74 @@ export async function sendAssessmentInvitationEmail(params: {
   });
 }
 
+export async function sendDecisionEmail(params: {
+  to: string;
+  candidateName: string;
+  positionTitle: string;
+  decision: "offer" | "reject" | "waitlist";
+  offerDetails?: {
+    salary?: number;
+    startDate?: Date;
+    acceptanceDeadline?: Date;
+  };
+}) {
+  const { to, candidateName, positionTitle, decision, offerDetails } = params;
+
+  const emailServer = process.env.EMAIL_SERVER;
+  const emailPort = Number(process.env.EMAIL_PORT ?? "587");
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
+  const emailFrom = process.env.EMAIL_FROM ?? "noreply@recruitment.com";
+
+  if (!emailServer || !emailUser || !emailPassword) {
+    // eslint-disable-next-line no-console
+    console.log(`[Decision email - local fallback]\nTo: ${to}\nDecision: ${decision}\n`);
+    return;
+  }
+
+  const transport = nodemailer.createTransport({
+    host: emailServer,
+    port: emailPort,
+    secure: emailPort === 465,
+    auth: {
+      user: emailUser,
+      pass: emailPassword,
+    },
+  });
+
+  let subject = "";
+  let html = `<p>Dear ${candidateName},</p>`;
+
+  if (decision === "offer") {
+    subject = `Job Offer: ${positionTitle}`;
+    html += `<p>We are absolutely thrilled to offer you the position of <strong>${positionTitle}</strong>!</p>`;
+    if (offerDetails) {
+      html += `<ul>`;
+      if (offerDetails.salary) html += `<li><strong>Salary:</strong> $${offerDetails.salary.toLocaleString()}</li>`;
+      if (offerDetails.startDate) html += `<li><strong>Expected Start Date:</strong> ${new Date(offerDetails.startDate).toLocaleDateString()}</li>`;
+      if (offerDetails.acceptanceDeadline) html += `<li><strong>Acceptance Deadline:</strong> ${new Date(offerDetails.acceptanceDeadline).toLocaleDateString()}</li>`;
+      html += `</ul>`;
+    }
+    html += `<p>Please log in to your dashboard to view the full details and respond to this offer.</p>`;
+  } else if (decision === "reject") {
+    subject = `Update on your application for ${positionTitle}`;
+    html += `<p>Thank you for taking the time to interview for the <strong>${positionTitle}</strong> role. While we were impressed with your background, we have decided to move forward with other candidates who more closely fit our current needs.</p>`;
+    html += `<p>We wish you the best in your job search and future professional endeavors.</p>`;
+  } else if (decision === "waitlist") {
+    subject = `Update: Waitlist for ${positionTitle}`;
+    html += `<p>Thank you for interviewing for the <strong>${positionTitle}</strong> role. The team was very impressed with your skills.</p>`;
+    html += `<p>At this moment, we are placing your application on our waitlist as we finalize headcounts. We will reach back out as soon as a final decision is made.</p>`;
+  }
+
+  html += `<p>Best regards,<br/>The Hiring Team</p>`;
+
+  const text = html.replace(/<[^>]+>/g, "\n").trim();
+
+  await transport.sendMail({
+    from: emailFrom,
+    to,
+    subject,
+    text,
+    html,
+  });
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { getAuthToken, deny } from "@/lib/utils/authz";
+import { withErrorHandler } from "@/lib/utils/api-handler";
+import { getStorageProvider } from "@/lib/storage";
 
 const ALLOWED = [
   "application/pdf",
@@ -11,7 +11,7 @@ const ALLOWED = [
   "image/webp",
 ];
 
-export async function POST(req: Request) {
+export const POST = withErrorHandler(async (req: Request) => {
   const token = await getAuthToken(req);
   if (!token) return deny(401, "Unauthorized");
 
@@ -29,17 +29,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Unsupported file type" }, { status: 400 });
   }
 
-  const uploadDir = process.env.UPLOAD_DIR ?? "./public/uploads";
-  const absDir = path.resolve(process.cwd(), uploadDir);
-  await mkdir(absDir, { recursive: true });
+  const storageProvider = getStorageProvider();
+  const fileUrl = await storageProvider.uploadFile(file);
 
-  const ext = path.extname(file.name || "");
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-  const absPath = path.join(absDir, filename);
-  const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(absPath, bytes);
-
-  const fileUrl = `/uploads/${filename}`;
   return NextResponse.json({ ok: true, fileUrl });
-}
+});
 

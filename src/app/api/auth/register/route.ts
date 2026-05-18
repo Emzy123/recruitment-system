@@ -5,6 +5,8 @@ import { User } from "@/lib/db/models/User";
 import { hashPassword } from "@/lib/utils/bcrypt";
 import { issueAuthToken } from "@/lib/auth";
 import { logAudit } from "@/lib/utils/audit";
+import crypto from "crypto";
+import { sendVerificationEmail } from "@/lib/utils/email";
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -40,6 +42,11 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
+  
+  const tokenString = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(tokenString).digest("hex");
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
   const user = await User.create({
     email,
     passwordHash,
@@ -48,7 +55,13 @@ export async function POST(req: Request) {
     role: "candidate",
     isActive: true,
     emailVerified: false,
+    emailVerificationTokenHash: tokenHash,
+    emailVerificationExpires: expires,
   });
+
+  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const verifyUrl = `${appUrl}/verify-email?token=${tokenString}&email=${encodeURIComponent(email)}`;
+  await sendVerificationEmail({ to: email, verifyUrl });
 
   const token = await issueAuthToken({
     uid: user._id.toString(),

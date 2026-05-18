@@ -15,6 +15,8 @@ export interface IUser {
   lastLogin?: Date;
   passwordResetTokenHash?: string;
   passwordResetExpires?: Date;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpires?: Date;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -48,6 +50,8 @@ const UserSchema = new Schema<IUser>(
     lastLogin: { type: Date },
     passwordResetTokenHash: { type: String, default: "" },
     passwordResetExpires: { type: Date },
+    emailVerificationTokenHash: { type: String, default: "" },
+    emailVerificationExpires: { type: Date },
   },
   { timestamps: true }
 );

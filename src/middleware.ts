@@ -54,8 +54,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (token.role !== requiredRole) {
-    return NextResponse.redirect(new URL(roleDashboard(token.role), request.url));
+  if (token.role !== requiredRole && token.role !== "admin") {
+    return NextResponse.redirect(new URL(roleDashboard(token.role as string), request.url));
   }
 
   return NextResponse.next();

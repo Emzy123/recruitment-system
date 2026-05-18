@@ -5,6 +5,7 @@ import { connectToMongo } from "@/lib/mongodb";
 import { getAuthToken, deny } from "@/lib/utils/authz";
 import { PeerReview } from "@/lib/db/models/PeerReview";
 import { Application } from "@/lib/db/models/Application";
+import { User } from "@/lib/db/models/User";
 import { logAudit } from "@/lib/utils/audit";
 import { createNotification } from "@/lib/utils/notifications";
 
@@ -61,9 +62,18 @@ export async function POST(req: Request, context: { params: { applicationId: str
     submittedAt: new Date(),
   });
 
-  await Application.findByIdAndUpdate(context.params.applicationId, {
-    $set: { status: "admin_decision" },
+  // Calculate quorum
+  const totalCommittee = await User.countDocuments({ role: "committee", isActive: true });
+  const requiredReviews = Math.min(2, totalCommittee || 1);
+  const currentReviews = await PeerReview.countDocuments({ 
+    applicationId: new mongoose.Types.ObjectId(context.params.applicationId) 
   });
+
+  if (currentReviews >= requiredReviews) {
+    await Application.findByIdAndUpdate(context.params.applicationId, {
+      $set: { status: "admin_decision" },
+    });
+  }
 
   // Candidate notification + audit trail.
   if (application) {

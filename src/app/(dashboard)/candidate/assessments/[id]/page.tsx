@@ -88,10 +88,67 @@ export default function CandidateAssessmentPage() {
   }, [submitted, applicationId, assessmentId]);
 
   useEffect(() => {
-    if (!started || timerEndAt == null) return;
+    if (!started || timerEndAt == null || submitted) return;
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
-  }, [started, timerEndAt]);
+  }, [started, timerEndAt, submitted]);
+
+  // Auto-submit when time expires
+  useEffect(() => {
+    if (started && timerEndAt != null && !submitted && !submitBusy) {
+      if (Date.now() >= timerEndAt) {
+        // Auto-submit using a direct API call rather than onSubmit to avoid dependency issues
+        setSubmitBusy(true);
+        const payload = {
+          applicationId,
+          answers: (assessment?.questions ?? []).map((q: any) => {
+            const qid = String(q._id);
+            const entry = answers[qid] ?? {};
+            const answer = q.type === "coding" ? entry.code ?? "" : q.type === "essay" ? entry.text ?? "" : entry.choice ?? "";
+            return { questionId: qid, answer, timeSpent: 0 };
+          }),
+        };
+        fetch(`/api/assessments/${assessmentId}/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).finally(() => {
+          window.location.href = `/candidate/assessments/${assessmentId}?submitted=1`;
+        });
+      }
+    }
+  }, [started, timerEndAt, submitted, submitBusy, applicationId, assessment, answers, assessmentId]);
+
+  // Proctoring logic
+  useEffect(() => {
+    if (!started || submitted || !applicationId) return;
+
+    function logEvent(eventType: string) {
+      fetch(`/api/assessments/${assessmentId}/proctoring`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, eventType }),
+      }).catch(() => null);
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        logEvent("tab_switch");
+      }
+    }
+
+    function onBlur() {
+      logEvent("screen_blur");
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [started, submitted, assessmentId, applicationId]);
 
   const durationMs = useMemo(() => {
     const mins = Number(assessment?.durationMinutes ?? 0);

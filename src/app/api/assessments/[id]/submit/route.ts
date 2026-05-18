@@ -54,6 +54,7 @@ export async function POST(req: Request, context: { params: { id: string } }) {
   }
 
   let totalScore = 0;
+  let hasJudge0Error = false;
   const gradedAnswers: Array<{
     questionId: string;
     answer: string;
@@ -77,6 +78,7 @@ export async function POST(req: Request, context: { params: { id: string } }) {
       feedback = "Essay auto-scored with baseline heuristic; manual review recommended.";
     } else if (question.type === "coding") {
       let passedCount = 0;
+      let judge0Failed = false;
       const tests = question.testCases ?? [];
       for (const tc of tests) {
         const run = await runCodeWithJudge0({
@@ -85,10 +87,21 @@ export async function POST(req: Request, context: { params: { id: string } }) {
           stdin: tc.input,
           expectedOutput: tc.expectedOutput,
         });
+        if (run.status === "request_error" || run.status === "config_error") {
+          judge0Failed = true;
+          hasJudge0Error = true;
+          break; // Don't keep hammering the API if it's down
+        }
         if (run.passed) passedCount += 1;
       }
-      score = tests.length ? Math.round((passedCount / tests.length) * question.points) : 0;
-      feedback = `${passedCount}/${tests.length} test cases passed`;
+      
+      if (judge0Failed) {
+        score = 0;
+        feedback = "Auto-grader unavailable. Manual review required.";
+      } else {
+        score = tests.length ? Math.round((passedCount / tests.length) * question.points) : 0;
+        feedback = `${passedCount}/${tests.length} test cases passed`;
+      }
     }
 
     totalScore += score;
@@ -104,7 +117,7 @@ export async function POST(req: Request, context: { params: { id: string } }) {
   const passed = totalScore >= assessment.passingScore;
   const hasFlaggedLogs = (parsed.data.proctoringLogs ?? []).some((l) => Boolean(l.flagged));
   const hasEssayQuestion = assessment.questions.some((q: any) => q.type === "essay");
-  const requiresManualReview = hasFlaggedLogs || hasEssayQuestion || !passed;
+  const requiresManualReview = hasFlaggedLogs || hasEssayQuestion || hasJudge0Error || !passed;
 
   const result = await AssessmentResult.findOneAndUpdate(
     {

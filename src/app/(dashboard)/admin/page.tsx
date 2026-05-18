@@ -2,18 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 
 export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setError(null);
+    setLoading(true);
     fetch("/api/admin/analytics")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch analytics");
+        return r.json();
+      })
       .then((d) => setAnalytics(d))
-      .catch(() => setError("Failed to load analytics"));
+      .catch((e) => setError(e.message || "Failed to load analytics"))
+      .finally(() => setLoading(false));
   }, []);
+
+  const retryLoadAnalytics = () => {
+    setError(null);
+    setLoading(true);
+    fetch("/api/admin/analytics")
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch analytics");
+        return r.json();
+      })
+      .then((d) => setAnalytics(d))
+      .catch((e) => setError(e.message || "Failed to load analytics"))
+      .finally(() => setLoading(false));
+  };
 
   async function downloadApplicationsReport() {
     const res = await fetch("/api/admin/reports", {
@@ -63,35 +84,46 @@ export default function AdminDashboardPage() {
         </div>
 
         {error ? (
-          <div className="bg-danger-subtle border border-subtle rounded-xl p-4 text-sm text-danger">
-            {error}
+          <ErrorMessage 
+            message={error} 
+            onRetry={retryLoadAnalytics}
+          />
+        ) : loading ? (
+          <div className="grid md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card p-5">
+                <div className="flex items-center justify-center h-16">
+                  <LoadingSpinner size="lg" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : null}
-
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="card p-5">
-            <div className="text-xs text-muted">Total applications</div>
-            <div className="text-2xl font-semibold mt-1 text-strong">
-              {analytics?.totalApplications ?? "—"}
+        ) : (
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="card p-5">
+              <div className="text-xs text-muted">Total applications</div>
+              <div className="text-2xl font-semibold mt-1 text-strong">
+                {analytics?.totalApplications ?? "—"}
+              </div>
+            </div>
+            <div className="card p-5">
+              <div className="text-xs text-muted">Assessment pass rate</div>
+              <div className="text-2xl font-semibold mt-1 text-strong">
+                {typeof analytics?.assessmentPassRate === "number"
+                  ? `${analytics.assessmentPassRate}%`
+                  : "—"}
+              </div>
+            </div>
+            <div className="card p-5">
+              <div className="text-xs text-muted">Positions by department</div>
+              <div className="text-2xl font-semibold mt-1 text-strong">
+                {Array.isArray(analytics?.positionsByDepartment)
+                  ? analytics.positionsByDepartment.length
+                  : "—"}
+              </div>
             </div>
           </div>
-          <div className="card p-5">
-            <div className="text-xs text-muted">Assessment pass rate</div>
-            <div className="text-2xl font-semibold mt-1 text-strong">
-              {typeof analytics?.assessmentPassRate === "number"
-                ? `${analytics.assessmentPassRate}%`
-                : "—"}
-            </div>
-          </div>
-          <div className="card p-5">
-            <div className="text-xs text-muted">Positions by department</div>
-            <div className="text-2xl font-semibold mt-1 text-strong">
-              {Array.isArray(analytics?.positionsByDepartment)
-                ? analytics.positionsByDepartment.length
-                : "—"}
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="card p-5">
           <div className="flex items-center justify-between flex-wrap gap-3">

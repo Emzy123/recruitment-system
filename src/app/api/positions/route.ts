@@ -5,6 +5,7 @@ import { Position } from "@/lib/db/models/Position";
 import { getToken } from "next-auth/jwt";
 import mongoose from "mongoose";
 import { logAudit } from "@/lib/utils/audit";
+import { withErrorHandler } from "@/lib/utils/api-handler";
 
 const CreatePositionSchema = z.object({
   title: z.string().min(1).max(200),
@@ -30,7 +31,7 @@ function parsePageParams(searchParams: URLSearchParams) {
   return { page, limit };
 }
 
-export async function GET(req: Request) {
+export const GET = withErrorHandler(async (req: Request) => {
   const url = new URL(req.url);
   const search = (url.searchParams.get("search") ?? "").trim();
   const type = url.searchParams.get("type") ?? undefined;
@@ -43,7 +44,10 @@ export async function GET(req: Request) {
 
   await connectToMongo();
 
-  const filter: any = { isActive: true };
+  const filter: any = { 
+    isActive: true,
+    closingDate: { $gte: new Date() } // Filter out expired positions
+  };
   if (type) filter.type = type;
   if (experienceLevel) filter.experienceLevel = experienceLevel;
   if (department) filter.department = department;
@@ -70,9 +74,9 @@ export async function GET(req: Request) {
     total,
     items,
   });
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withErrorHandler(async (req: Request) => {
   const token = await getToken({
     req: req as any,
     secret: process.env.NEXTAUTH_SECRET,
@@ -119,5 +123,5 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ ok: true, position: created }, { status: 201 });
-}
+});
 

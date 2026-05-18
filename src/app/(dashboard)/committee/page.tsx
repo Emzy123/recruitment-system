@@ -12,9 +12,7 @@ const STATUSES = [
   "review",
   "interview",
   "offer",
-  "waitlist",
   "hired",
-  "rejected",
 ] as const;
 
 export default function CommitteeDashboardPage() {
@@ -42,8 +40,23 @@ export default function CommitteeDashboardPage() {
     const map: Record<string, AppItem[]> = {};
     for (const s of STATUSES) map[s] = [];
     for (const a of items) {
-      const s = a.status ?? "submitted";
-      (map[s] ?? (map[s] = [])).push(a);
+      let s = a.status ?? "submitted";
+      
+      // Map specialized database statuses to Kanban columns
+      if (s === "assessment_invited" || s === "assessment_in_progress" || s === "assessment_completed") {
+        s = "assessment";
+      }
+      if (s === "rejected" || s === "waitlist") {
+        // Just hide them from the active pipeline for now, or put them under review?
+        continue;
+      }
+      
+      if (map[s]) {
+        map[s].push(a);
+      } else {
+        // Fallback for unknown statuses
+        (map["submitted"] ?? (map["submitted"] = [])).push(a);
+      }
     }
     return map;
   }, [items]);
@@ -82,12 +95,14 @@ export default function CommitteeDashboardPage() {
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {STATUSES.map((status) => (
                 <div key={status} className="rounded-xl border border-subtle surface-subtle p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-strong">{status}</div>
-                    <div className="text-xs text-muted">{byStatus[status].length}</div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="text-sm font-semibold text-strong capitalize">{status}</div>
+                    <div className="text-xs text-muted font-medium bg-white/50 px-2 py-0.5 rounded-full border border-subtle">
+                      {byStatus[status].length}
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-2">
-                    {byStatus[status].slice(0, 6).map((a) => (
+                  <div className="space-y-2 min-h-[100px]">
+                    {byStatus[status].map((a) => (
                       <Link
                         key={a._id}
                         href={`/committee/applications/${a._id}`}
