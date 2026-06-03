@@ -1,3 +1,17 @@
+const { TextDecoder, TextEncoder } = require('util')
+const timers = require('timers')
+
+global.TextDecoder = TextDecoder
+global.TextEncoder = TextEncoder
+global.setImmediate = timers.setImmediate
+global.clearImmediate = timers.clearImmediate
+
+const { Request, Response, Headers, fetch } = require('next/dist/compiled/@edge-runtime/primitives')
+global.Request = Request
+global.Response = Response
+global.Headers = Headers
+global.fetch = fetch
+
 import '@testing-library/jest-dom'
 
 // Mock Next.js router

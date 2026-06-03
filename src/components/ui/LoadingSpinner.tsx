@@ -15,11 +15,12 @@ export function LoadingSpinner({ size = "md", className = "" }: LoadingSpinnerPr
   return (
     <div className={`animate-spin ${sizeClasses[size]} ${className}`}>
       <svg
+        role="img"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
-        className="w-full h-full"
+        className={`${sizeClasses[size]}`}
       >
         <path
           d="M21 12a9 9 0 11-6.219-8.56"

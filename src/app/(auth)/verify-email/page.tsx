@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const email = searchParams.get("email");
@@ -57,7 +57,7 @@ export default function VerifyEmailPage() {
         {status === "success" && (
           <>
             <p className="text-success mb-6 bg-success-subtle p-3 rounded-lg border border-success/20">
-              Your email has been successfully verified!
+               Your email has been successfully verified!
             </p>
             <Link href="/login" className="btn-primary w-full py-3">
               Proceed to Login
@@ -77,5 +77,25 @@ export default function VerifyEmailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-6 surface-page">
+        <div className="card max-w-md w-full p-8 text-center shadow-lg border border-subtle">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-strong mb-2">Email Verification</h1>
+          <p className="text-muted">Loading...</p>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

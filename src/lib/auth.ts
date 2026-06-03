@@ -18,9 +18,6 @@ function getIpFromReq(req: any) {
 }
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
-if (!nextAuthSecret) {
-  throw new Error("Missing environment variable NEXTAUTH_SECRET");
-}
 
 export const authOptions: NextAuthOptions = {
   secret: nextAuthSecret,
@@ -143,8 +140,11 @@ export async function issueAuthToken(params: {
   email: string;
 }) {
   const { uid, role, email } = params;
+  if (!nextAuthSecret) {
+    throw new Error("Missing environment variable NEXTAUTH_SECRET");
+  }
   return encode({
-    secret: nextAuthSecret!,
+    secret: nextAuthSecret,
     token: { uid, role, email },
     maxAge: 60 * 60 * 24 * 7,
   });

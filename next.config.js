@@ -47,4 +47,5 @@ module.exports = withSentryConfig(nextConfig, {
   hideSourceMaps: true,
   disableLogger: true,
   automaticVercelMonitors: true,
+  dryRun: !process.env.SENTRY_AUTH_TOKEN,
 });

@@ -1,20 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7fb;
-  --foreground: #111827;
-  --muted: #4b5563;
-  --border: #d6dde8;
-  --surface: #ffffff;
-  --surface-subtle: #eef2f7;
-  --surface-glass: rgb(255 255 255 / 0.85);
-  --border-strong: #c5cedb;
-  --success-bg: #dcfce7;
-  --success-text: #166534;
-  --danger-bg: #fee2e2;
-  --danger-text: #991b1b;
-  --brand: #4f46e5; /* indigo-600 */
-  --brand-2: #0ea5e9; /* sky-500 */
+  --font-geist-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-geist-mono: "JetBrains Mono", monospace;
+  --background: hsl(220 33% 98%);
+  --foreground: hsl(224 71.4% 4.1%);
+  --muted: hsl(215.4 16.3% 46.9%);
+  --border: hsl(214.3 32.8% 91.4%);
+  --surface: hsl(0 0% 100%);
+  --surface-subtle: hsl(210 40% 96.1%);
+  --surface-glass: rgba(255 255 255 / 0.7);
+  --border-strong: hsl(214.3 31.8% 85%);
+  --success-bg: hsl(142.1 76.2% 96.3%);
+  --success-text: hsl(142.1 76.2% 16.3%);
+  --danger-bg: hsl(0 84.2% 96.3%);
+  --danger-text: hsl(0 84.2% 16.3%);
+  --brand: hsl(250 84% 54%); /* Indigo */
+  --brand-2: hsl(190 95% 44%); /* Sky Blue */
 }
 
 @theme inline {
@@ -22,22 +25,33 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 4s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.75; }
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1220;
-    --foreground: #e5e7eb;
-    --muted: #9ca3af;
-    --border: #2c3648;
-    --surface: #111a2b;
-    --surface-subtle: #172238;
-    --surface-glass: rgb(15 23 42 / 0.82);
-    --border-strong: #3d4a63;
-    --success-bg: #052e1a;
-    --success-text: #86efac;
-    --danger-bg: #450a0a;
-    --danger-text: #fecaca;
+    --background: hsl(222.2 84% 4.9%);
+    --foreground: hsl(210 40% 98%);
+    --muted: hsl(215.4 16.3% 56.9%);
+    --border: hsl(217.2 32.6% 17.5%);
+    --surface: hsl(222.2 47.4% 11.2%);
+    --surface-subtle: hsl(222.2 47.4% 15%);
+    --surface-glass: rgba(15 23 42 / 0.65);
+    --border-strong: hsl(217.2 32.6% 24%);
+    --success-bg: hsl(142.1 76.2% 4.9%);
+    --success-text: hsl(142.1 70% 60%);
+    --danger-bg: hsl(0 84.2% 4.9%);
+    --danger-text: hsl(0 70% 60%);
   }
 }
 
@@ -68,19 +82,33 @@ body {
   }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
 @layer components {
   .app-container {
-    @apply max-w-6xl mx-auto px-4;
+    @apply max-w-7xl mx-auto px-6 md:px-8;
   }
 
   .card {
-    @apply rounded-2xl border shadow-sm;
+    @apply rounded-3xl border shadow-sm transition-all duration-300;
     background: var(--surface);
     border-color: var(--border);
   }
 
+  .card-interactive {
+    @apply hover:shadow-xl hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--brand)_20%,var(--border))];
+  }
+
   .input {
-    @apply w-full rounded-lg border px-3 py-2.5 text-[15px] focus:ring-4 disabled:cursor-not-allowed;
+    @apply w-full rounded-xl border px-4 py-3 text-[15px] focus:ring-4 disabled:cursor-not-allowed transition-all duration-200;
     border-color: var(--border);
     background: var(--surface);
     color: var(--foreground);
@@ -100,22 +128,22 @@ body {
   }
 
   .label {
-    @apply block text-sm font-medium;
+    @apply block text-sm font-medium mb-1.5;
     color: var(--foreground);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:ring-4 focus-visible:ring-indigo-500/30 disabled:cursor-not-allowed;
-    background: var(--brand);
+    @apply inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-300 focus-visible:ring-4 focus-visible:ring-indigo-500/30 disabled:cursor-not-allowed hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/15 active:translate-y-0;
+    background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 85%, var(--brand-2)));
     color: #ffffff;
   }
 
   .btn-primary:hover {
-    background: color-mix(in srgb, var(--brand) 88%, white);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 92%, white), color-mix(in srgb, var(--brand-2) 92%, white));
   }
 
   .btn-primary:active {
-    background: color-mix(in srgb, var(--brand) 86%, black);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 92%, black), color-mix(in srgb, var(--brand-2) 92%, black));
   }
 
   .btn-primary:disabled {
@@ -124,7 +152,7 @@ body {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors border focus-visible:ring-4 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-300 border focus-visible:ring-4 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0;
     border-color: var(--border);
     background: var(--surface);
     color: var(--foreground);

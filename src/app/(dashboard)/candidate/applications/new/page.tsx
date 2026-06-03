@@ -572,28 +572,20 @@ export default function NewApplicationPage() {
                 {coverLetter.trim() ? coverLetter.trim().slice(0, 800) + (coverLetter.length > 800 ? "…" : "") : "—"}
               </div>
             </div>
-
-            <button
-              type="submit"
-              disabled={submitBusy}
-              className="btn-primary w-full h-11 rounded-md font-medium"
-            >
-              {submitBusy ? "Submitting..." : "Submit application"}
-            </button>
           </div>
         ) : null}
 
         {/* Navigation */}
-        {step !== 6 ? (
-          <div className="mt-6 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={prev}
-              disabled={step === 1}
-              className="btn-secondary px-4 py-2 rounded-md"
-            >
-              Back
-            </button>
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={step === 1}
+            className="btn-secondary px-4 py-2 rounded-md"
+          >
+            Back
+          </button>
+          {step !== 6 ? (
             <button
               type="button"
               onClick={next}
@@ -601,8 +593,16 @@ export default function NewApplicationPage() {
             >
               Continue
             </button>
-          </div>
-        ) : null}
+          ) : (
+            <button
+              type="submit"
+              disabled={submitBusy}
+              className="btn-primary px-6 py-2 rounded-md font-medium"
+            >
+              {submitBusy ? "Submitting..." : "Submit application"}
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );
