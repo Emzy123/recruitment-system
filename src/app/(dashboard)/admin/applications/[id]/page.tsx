@@ -17,6 +17,7 @@ export default function AdminApplicationDecisionPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [reviews, setReviews] = useState<any[]>([]);
+  const [interview, setInterview] = useState<any>(null);
   const [existingDecision, setExistingDecision] = useState<any>(null);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -24,6 +25,7 @@ export default function AdminApplicationDecisionPage() {
   useEffect(() => {
     fetchApp();
     fetchReviews();
+    fetchInterview();
   }, [params.id]);
 
   async function fetchApp() {
@@ -42,6 +44,15 @@ export default function AdminApplicationDecisionPage() {
     const d = await fetch(`/api/reviews/${params.id}`).then((r) => r.json()).catch(() => null);
     setReviews(d?.items ?? []);
     setLoadingReviews(false);
+  }
+
+  async function fetchInterview() {
+    const res = await fetch(`/api/interviews?applicationId=${params.id}`).then((r) => r.json()).catch(() => null);
+    if (res?.ok && res?.items?.length > 0) {
+      setInterview(res.items[0]);
+    } else {
+      setInterview(null);
+    }
   }
 
   async function submitDecision(decision: "offer" | "reject" | "waitlist") {
@@ -113,10 +124,15 @@ export default function AdminApplicationDecisionPage() {
                 <div className="font-semibold">⏳ Awaiting Committee Review</div>
                 <div className="mt-1">The committee has not submitted their peer review yet. You can make a final decision once the committee marks this as reviewed.</div>
               </>
+            ) : app.status === "interview" ? (
+              <>
+                <div className="font-semibold">⏳ Candidate is in Interview Stage</div>
+                <div className="mt-1">Once the scheduled panel interview evaluations are fully submitted, this application will advance to the decision phase.</div>
+              </>
             ) : (
               <>
                 <div className="font-semibold">⚠️ Application not in decision phase</div>
-                <div className="mt-1">Current status is <strong>{app.status?.replace(/_/g, " ")}</strong>. Final decisions can only be made after committee review is complete.</div>
+                <div className="mt-1">Current status is <strong>{app.status?.replace(/_/g, " ")}</strong>. Final decisions can only be made after committee review & interviews are complete.</div>
               </>
             )}
           </div>
@@ -124,7 +140,7 @@ export default function AdminApplicationDecisionPage() {
 
         {/* Committee Peer Reviews */}
         <div className="card p-6">
-          <h2 className="text-lg font-semibold text-strong mb-3">Committee Peer Reviews</h2>
+          <h2 className="text-lg font-semibold text-strong mb-3">Committee Dossier Reviews</h2>
           {loadingReviews ? (
             <div className="text-sm text-muted">Loading reviews...</div>
           ) : reviews.length === 0 ? (
@@ -159,11 +175,89 @@ export default function AdminApplicationDecisionPage() {
           )}
         </div>
 
+        {/* Interview Panel Evaluations */}
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-strong mb-3">Interview Panel Evaluations</h2>
+          {!interview ? (
+            <div className="text-sm text-muted">No interview scheduled or conducted for this candidate.</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm border border-subtle bg-gray-50 dark:bg-black/20 p-3 rounded-lg flex flex-wrap justify-between gap-3">
+                <div>
+                  <span className="text-muted block text-xs">Date & Time:</span>
+                  <strong className="text-strong">{new Date(interview.scheduledAt).toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span className="text-muted block text-xs">Location/Virtual Link:</span>
+                  {interview.locationOrLink.startsWith("http") ? (
+                    <a href={interview.locationOrLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                      Link
+                    </a>
+                  ) : (
+                    <strong className="text-strong">{interview.locationOrLink}</strong>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted block text-xs">Interview Status:</span>
+                  <span className="capitalize font-semibold text-strong">{interview.status}</span>
+                </div>
+              </div>
+
+              {(!interview.evaluations || interview.evaluations.length === 0) ? (
+                <div className="text-sm text-muted">Interview scheduled but no panel evaluations have been submitted.</div>
+              ) : (
+                <div className="space-y-4">
+                  {interview.evaluations.map((ev: any, idx: number) => (
+                    <div key={idx} className="border border-subtle rounded-lg p-4 surface-subtle text-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-strong">
+                          {ev.interviewerId?.firstName ? `${ev.interviewerId.firstName} ${ev.interviewerId.lastName}` : "Panelist"}
+                        </span>
+                        <span className="font-semibold">
+                          {RECOMMENDATION_LABELS[ev.recommendation] ?? ev.recommendation}
+                        </span>
+                      </div>
+                      
+                      {/* Rubrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs text-muted">
+                        <div>
+                          <div>Teaching/Research</div>
+                          <strong className="text-strong text-base">{ev.scores?.teachingResearch}/5</strong>
+                        </div>
+                        <div>
+                          <div>Academic Vision</div>
+                          <strong className="text-strong text-base">{ev.scores?.academicVision}/5</strong>
+                        </div>
+                        <div>
+                          <div>Domain Depth</div>
+                          <strong className="text-strong text-base">{ev.scores?.domainDepth}/5</strong>
+                        </div>
+                        <div>
+                          <div>Communication</div>
+                          <strong className="text-strong text-base">{ev.scores?.communication}/5</strong>
+                        </div>
+                        <div>
+                          <div>Cultural Fit</div>
+                          <strong className="text-strong text-base">{ev.scores?.culturalFit}/5</strong>
+                        </div>
+                      </div>
+
+                      {ev.strengths && <div><span className="text-muted text-xs">Strengths: </span>{ev.strengths}</div>}
+                      {ev.weaknesses && <div><span className="text-muted text-xs">Weaknesses: </span>{ev.weaknesses}</div>}
+                      {ev.comments && <div><span className="text-muted text-xs">Comments: </span>{ev.comments}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Decision Form */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-strong mb-1">Make Final Decision</h2>
           {!canDecide && (
-            <div className="text-xs text-muted mb-3">Decision buttons are disabled until committee review is complete.</div>
+            <div className="text-xs text-muted mb-3">Decision buttons are disabled until committee review and interviews are complete.</div>
           )}
 
           <label className="label mt-2" htmlFor="notes">Decision Notes</label>
